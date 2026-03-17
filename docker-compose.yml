@@ -1,0 +1,42 @@
+services:
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: gitea
+      POSTGRES_PASSWORD: gitea_pass
+      POSTGRES_DB: gitea
+    volumes:
+      - ./db/data:/var/lib/postgresql/data
+
+  gitea:
+    image: gitea/gitea:latest
+    restart: always
+    depends_on:
+      - db
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=db:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=gitea
+      - GITEA__database__PASSWD=gitea_pass
+      - GITEA__server__ROOT_URL=https://git.example.com/
+      - GITEA__server__DOMAIN=git.example.com
+    volumes:
+      - ./gitea/data:/data
+    expose:
+      - "3000"
+
+  nginx:
+    image: nginx:latest
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/config/conf.d:/etc/nginx/conf.d
+      - ./nginx/data/cert:/etc/letsencrypt
+    depends_on:
+      - gitea
